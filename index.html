@@ -1,100 +1,138 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Turno Cuidao</title>
-    <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="style.css">
-    <link rel="icon" href="icon.png">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Turno Cuidao</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="icon.png" />
 </head>
 <body>
-    <header>
-        <img src="icon.png" alt="Icono" class="icono">
-        <h1>🩺 Turno Cuidao</h1>
-        <p class="subtitulo">Tu organizador de turnos personal, rápido y sin complicaciones</p>
-    </header>
+  <header>
+    <img src="icon.png" alt="Icono" class="icono" />
+    <h1>🩺 Turno Cuidao</h1>
+    <p class="subtitulo">Organiza, edita, exporta y recuerda tus turnos</p>
+  </header>
 
-    <form id="turnoForm">
-        <input type="text" id="nombre" placeholder="Nombre del compañero" required>
-        <input type="date" id="fecha" required>
-        <button type="submit">➕ Agregar Turno</button>
-    </form>
+  <form id="turnoForm">
+    <input type="text" id="nombre" placeholder="Nombre del compañero" required />
+    <input type="date" id="fecha" required />
+    <button type="submit">➕ Agregar Turno</button>
+  </form>
 
-    <ul id="listaTurnos"></ul>
+  <ul id="listaTurnos"></ul>
 
-    <div class="acciones">
-        <button id="btnCompartir">🔗 Compartir esta app</button>
-        <button id="btnInstalar" style="display: none;">📲 Instalar app</button>
-    </div>
+  <div class="acciones">
+    <button id="btnExportar">📤 Exportar</button>
+    <button id="btnCompartir">🔗 Compartir</button>
+    <button id="btnInstalar" style="display: none;">📲 Instalar app</button>
+  </div>
 
-    <script>
-        const form = document.getElementById('turnoForm');
-        const lista = document.getElementById('listaTurnos');
-        const btnInstalar = document.getElementById('btnInstalar');
-        const btnCompartir = document.getElementById('btnCompartir');
-        let deferredPrompt;
+  <script>
+    const form = document.getElementById('turnoForm');
+    const lista = document.getElementById('listaTurnos');
+    const btnInstalar = document.getElementById('btnInstalar');
+    const btnCompartir = document.getElementById('btnCompartir');
+    const btnExportar = document.getElementById('btnExportar');
+    let deferredPrompt;
 
-        function cargarTurnos() {
-            const turnos = JSON.parse(localStorage.getItem('turnos')) || [];
-            turnos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
-            lista.innerHTML = '';
-            turnos.forEach((t, i) => {
-                const li = document.createElement('li');
-                li.innerHTML = `<strong>${t.nombre}</strong> - ${t.fecha}`;
-                const btn = document.createElement('button');
-                btn.textContent = '❌';
-                btn.onclick = () => {
-                    turnos.splice(i, 1);
-                    localStorage.setItem('turnos', JSON.stringify(turnos));
-                    cargarTurnos();
-                };
-                li.appendChild(btn);
-                lista.appendChild(li);
-            });
-        }
-
-        form.onsubmit = e => {
-            e.preventDefault();
-            const nombre = document.getElementById('nombre').value.trim();
-            const fecha = document.getElementById('fecha').value;
-            if (!nombre || !fecha) return;
-            const turnos = JSON.parse(localStorage.getItem('turnos')) || [];
-            turnos.push({ nombre, fecha });
+    function cargarTurnos() {
+      const turnos = JSON.parse(localStorage.getItem('turnos')) || [];
+      turnos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+      lista.innerHTML = '';
+      turnos.forEach((t, i) => {
+        const li = document.createElement('li');
+        li.innerHTML = `<strong>${t.nombre}</strong> - ${t.fecha}`;
+        const borrar = document.createElement('button');
+        borrar.textContent = '❌';
+        borrar.onclick = () => {
+          turnos.splice(i, 1);
+          localStorage.setItem('turnos', JSON.stringify(turnos));
+          cargarTurnos();
+        };
+        const editar = document.createElement('button');
+        editar.textContent = '✏️';
+        editar.onclick = () => {
+          const nuevoNombre = prompt('Nuevo nombre:', t.nombre);
+          const nuevaFecha = prompt('Nueva fecha (YYYY-MM-DD):', t.fecha);
+          if (nuevoNombre && nuevaFecha) {
+            turnos[i] = { nombre: nuevoNombre, fecha: nuevaFecha };
             localStorage.setItem('turnos', JSON.stringify(turnos));
-            form.reset();
             cargarTurnos();
+          }
         };
+        const notificar = document.createElement('button');
+        notificar.textContent = '🔔';
+        notificar.onclick = () => {
+          if ("Notification" in window && Notification.permission === "granted") {
+            new Notification("📅 Recordatorio Turno", {
+              body: `${t.nombre} tiene turno el ${t.fecha}`
+            });
+          } else if (Notification.permission !== "denied") {
+            Notification.requestPermission().then(p => {
+              if (p === "granted") alert("Notificaciones activadas. Vuelve a pulsar 🔔.");
+            });
+          }
+        };
+        li.appendChild(editar);
+        li.appendChild(notificar);
+        li.appendChild(borrar);
+        lista.appendChild(li);
+      });
+    }
 
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            btnInstalar.style.display = 'inline-block';
+    form.onsubmit = e => {
+      e.preventDefault();
+      const nombre = document.getElementById('nombre').value.trim();
+      const fecha = document.getElementById('fecha').value;
+      if (!nombre || !fecha) return;
+      const turnos = JSON.parse(localStorage.getItem('turnos')) || [];
+      turnos.push({ nombre, fecha });
+      localStorage.setItem('turnos', JSON.stringify(turnos));
+      form.reset();
+      cargarTurnos();
+    };
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      btnInstalar.style.display = 'inline-block';
+    });
+
+    btnInstalar.onclick = () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(() => {
+          deferredPrompt = null;
+          btnInstalar.style.display = 'none';
         });
+      }
+    };
 
-        btnInstalar.onclick = () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then(() => {
-                    deferredPrompt = null;
-                    btnInstalar.style.display = 'none';
-                });
-            }
-        };
+    btnCompartir.onclick = async () => {
+      try {
+        await navigator.share({
+          title: 'Turno Cuidao',
+          text: 'Organiza tus turnos fácil desde esta app:',
+          url: window.location.href
+        });
+      } catch (err) {
+        alert('No se pudo compartir en este dispositivo.');
+      }
+    };
 
-        btnCompartir.onclick = async () => {
-            try {
-                await navigator.share({
-                    title: 'Turno Cuidao',
-                    text: 'Organiza turnos fácil desde esta app:',
-                    url: window.location.href
-                });
-            } catch (err) {
-                alert('No se pudo compartir en este dispositivo.');
-            }
-        };
+    btnExportar.onclick = () => {
+      const turnos = JSON.parse(localStorage.getItem('turnos')) || [];
+      const contenido = turnos.map(t => `${t.nombre},${t.fecha}`).join("\n");
+      const blob = new Blob([contenido], { type: "text/plain" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "turnos.csv";
+      a.click();
+    };
 
-        window.onload = cargarTurnos;
-    </script>
+    window.onload = cargarTurnos;
+  </script>
 </body>
 </html>
