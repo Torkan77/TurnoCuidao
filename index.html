@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Turno Cuidao</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="icon.png">
+</head>
+<body>
+    <h1>🩺 Turno Cuidao</h1>
+    <form id="turnoForm">
+        <input type="text" id="nombre" placeholder="Nombre del compañero" required>
+        <input type="date" id="fecha" required>
+        <button type="submit">Agregar Turno</button>
+    </form>
+    <ul id="listaTurnos"></ul>
+
+    <script>
+        const form = document.getElementById('turnoForm');
+        const lista = document.getElementById('listaTurnos');
+
+        function cargarTurnos() {
+            const turnos = JSON.parse(localStorage.getItem('turnos')) || [];
+            lista.innerHTML = '';
+            turnos.forEach((t, i) => {
+                const li = document.createElement('li');
+                li.textContent = `${t.nombre} - ${t.fecha}`;
+                const btn = document.createElement('button');
+                btn.textContent = '❌';
+                btn.onclick = () => {
+                    turnos.splice(i, 1);
+                    localStorage.setItem('turnos', JSON.stringify(turnos));
+                    cargarTurnos();
+                };
+                li.appendChild(btn);
+                lista.appendChild(li);
+            });
+        }
+
+        form.onsubmit = e => {
+            e.preventDefault();
+            const nombre = document.getElementById('nombre').value;
+            const fecha = document.getElementById('fecha').value;
+            const turnos = JSON.parse(localStorage.getItem('turnos')) || [];
+            turnos.push({ nombre, fecha });
+            localStorage.setItem('turnos', JSON.stringify(turnos));
+            form.reset();
+            cargarTurnos();
+        };
+
+        window.onload = cargarTurnos;
+    </script>
+</body>
+</html>
